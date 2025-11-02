@@ -9,7 +9,7 @@
         <!-- Database connection settings -->
 <!--    <property name="connection.driver_class">com.mysql.cj.jdbc.Driver</property>         can be also used as connection.driver_class-->        
         <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
-        <property name="hibernate.connection.url">jdbc:mysql//localhost:3306/sbms</property>
+        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/sbms</property>
         <property name="hibernate.connection.username">root</property>
         <property name="hibernate.connection.password">admin@123</property>
 
@@ -23,7 +23,8 @@
         <property name="hibernate.show_sql">true</property>
 
         <!-- Automatically create/update table -->
-        <property name="hibernate.hbm2ddl.auto">update</property>
+        <!-- <property name="hibernate.hbm2ddl.auto">update</property> -->
+        <property name="hibernate.hbm2ddl.auto">create</property>
 
         <!-- Mapping file -->
         <mapping resource="Student.hbm.xml"/>

@@ -1,1 +1,452 @@
-Hibernate
+Hibernate:--> JDBC knowledge + SQL Understanding
+Data Persistence:-->Storing data permanently, it has 3 components
+-Data--> Represents what to persist
+   Raw data
+   Java Object
+-Medium-->How to persist
+   Java I/O Streams
+   Serialization/DeSerialization
+   JDBC(Java Database Connectivity)
+-Storage-->Where to persists
+   File
+   Database
+Note: Flat file->Not related to any technology ex-TXT file
++-------------+        +-------------------+        +-------------+
+|   Raw Data  | <----> |   Java I/O Streams| <----> |   Flat File |
++-------------+        +-------------------+        +-------------+
+
+                        (acts as Data Medium)
+---------------------------------------------------------------
+
++--------------+   <-->   +---------------------------+   <-->   +-------------+
+|  Java Object |   <-->   | Serialization /           |   <-->   |   Flat File |
+|              |           | Deserialization Process   |          |             |
++--------------+           +---------------------------+          +-------------+
+
+-Serialization-->It is a process of converting Java Object into stream of bytes
+Note: This Stream of bytes can be stored into a file or can be transferred over a network.(Only serialized object can be sent over the network)
+-DeSerialization-->It is the process of converting a streams of bytes into Java Object
+
+Drawback of Using a file as a data storage:-->
+-Data Redundancy(Duplication of data)
+-Data inconsistency(Data stored in 2 file, modified in 1 file)
+-Data Security(May be visible when file open)
+-Storage
+-No Transaction Support
+-No Constraints Support
+
+JDBC(Java DataBase Connectivity)
+--------------------------------
++-------------------------+     <----->     +-------------------------+     <----->     +-------------------------+
+|  Raw Data / Java Object |                 |          JDBC           |                 |        Database         |
+|                         |                 | (Java Database API)     |                 | (MySQL / Oracle / etc.) |
++-------------------------+                 +-------------------------+                 +-------------------------+
+
+CRUD Operations-->Create(Inserting data),Read(Selecting),Update(Modifying),Delete(Removing)
+
+Requirement:-->We have an employee object, which we want to store into data base using JDBC API
+    Process:-->Read the data from Employee object by calling Getter method
+	           Create a PreparedStatement object of JDBC
+			   Now set the data to PreparedStatement and execute it
+Note: In Realtime,data is in object, and JDBC is suitable for raw data. JDBC don't have save() or persist() methods. It has executeUpdate()/executeQuery()
+
+Why we need ORM tool?--> Need to transfer Java objects between our app and a db
+--------------------
+---JDBC
+-Saving data(Insert operations)
+Employee Object
++-------+-----+------+
+| 102   | B   | 6000 |
++-------+-----+------+
+       |
+       | 1. Call getConnection()
+       | 2. PrepareStatement()
+       | 3. Set the data
+       | 4. Execute it
+       v
++-----------------------------+
+| Database Table: EMPLOYEE    |
++-------+-----+------+
+| 101   | A   | 4000 |
+| 102   | B   | 6000 |
++-------+-----+------+
+
+-Retrieving data(select operations)
+Technology: JDBC
+
+Steps:
+1. Execute query
+2. getXXX() (ResultSet methods)
+3. Create Employee object
+4. Set the data
+
++-----------------------------+
+| Database Table: EMPLOYEE    |
++-------+-----+------+
+| 101   | A   | 4000 |
+| 102   | B   | 6000 |
++-------+-----+------+
+       |
+       v
+ResultSet
++-------+-----+------+
+| 101   | A   | 6000 |
++-------+-----+------+
+       |
+       v
+Employee Object
++-------+-----+------+
+| 101   | A   | 6000 |
++-------+-----+------+
+
+---ORM
+-Saving Data
+Employee Object
++-------+-----+------+
+| 102   | B   | 6000 |
++-------+-----+------+
+       |
+       | save()
+       v
++-----------------------------+
+| Database Table: EMPLOYEE    |
++-------+-----+------+
+| 101   | A   | 4000 |
+| 102   | B   | 6000 |
++-------+-----+------+
+
+-Retrieving data
++-----------------------------+
+| Database Table: EMPLOYEE    |
++-------+-----+------+
+| 101   | A   | 4000 |
+| 102   | B   | 6000 |
++-------+-----+------+
+       |
+       | load()
+       v
+Employee Object
++-------+-----+------+
+| 102   | B   | 6000 |
++-------+-----+------+
+
+--Hibernate(Open Source ORM framework from JBOSS Community)
+---------------------------------------
+-Transfer objects between our Java app and a database(Both SQL and NoSQL)
+-Alternate tools-->TopLink, MyBatis,ORMLite,DataNucleus
+-FrameWork provides a set of libraries for the common functionalities of a Java project. so it reduces coding efforts
+
+JPA(Java Persistence API):-->Specification by Sun MicroSystem
+-------------------------
+Object Model and Relational model are different
+To allow developers to switch easily from one ORM tool to another, common specifications provided by SUN Microsystem and ORM tool vendors provided implementation
+Most of the JPA Specification is created by taking the features from Hibernate and some features from TopLink
+-If we want to migrate form hibernate to MyBatis-->Just configure the Project Config file.
+
+--Feature of Hibernate-->
+1)HQL(Hibernate Query Language)-->It is the own query language of Hibernate
+-----------------------------
+-Hibernate has provided HQL to make the DAO classes as Database independent(SQL queries are database dependent)
+-HQL doesn't provide any burden on developer because HQL queries are also looks like SQL queries only
+-In SQL Queries, we use column names and table names, But in HQL Queries, we use variables names and class references
+Ex:1) (SQL)-->select * from emp
+      (HQL)-->select e from Employee e 
+   2) (SQL)-->select empno,ename from emp
+      (HQL)-->select e.employeeNo,e.employeeName from Employee e
+
+2)Caching
+---------
+                    +-------------------+
+                    | Java Application  |
+                    +---------+---------+
+                              |
+                              v
+                    +-------------------+
+                    |     Hibernate     |
+                    +---------+---------+
+                              |
+                              v
+          +---------------------------------------+
+          | Check: Object exists in L1 Cache?     |
+          +---------------------------------------+
+                       |                 |
+                    (YES)              (NO)
+                       |                 |
+                       v                 v
+        +-----------------------+   +-----------------------------------+
+        | Return from L1 Cache  |   | Check: Object exists in L2 Cache? |
+        +-----------------------+   +-----------------------------------+
+                                          |                 |
+                                       (YES)              (NO)
+                                          |                 |
+                                          v                 v
+                             +------------------------+   +--------------------+
+                             | Copy object to L1      |   |   Fetch from DB    |
+                             | Return to Application  |   +--------------------+
+                             +------------------------+            |
+                                          |                        |
+                                          |                        v
+                                          |            +------------------------+
+                                          |            | Copy object to L2 Cache|
+                                          |            +------------------------+
+                                          |                        |
+                                          +------------<------------+
+-Caching improves performance of an application by loading object from cache memory.
+In hibernate, 2 levels of cache can be used-->Level 1, Level 2
+
+3) Lazy loading--> By default, Servelet is lazy loaded. Instance varibles are lazy loaded, after object creation it will get memory.
+---------------
+-When a java app is asking for an object, the Hibernate will create a proxy object and return it to app without loading it from cache/db. when app is accessing the proxy object
+then hibernate will laod the real object from db. By doing this hibernate will reduce round trips between app and db
+                          ┌────────────────────────────┐
+                          │        Application         │
+                          │ (Java App accessing data)  │
+                          └─────────────┬──────────────┘
+                                        │
+                    (1) Ask Hibernate for Employee object
+                                        │
+                                        ▼
+                          ┌────────────────────────────┐
+                          │         Hibernate          │
+                          │ (ORM Framework handling DB)│
+                          └─────────────┬──────────────┘
+                                        │
+                    (2) Creates a Proxy Object for Employee
+                                        │
+                                        ▼
+                          ┌────────────────────────────┐
+                          │        Proxy Object        │
+                          │ (Placeholder for Employee) │
+                          └─────────────┬──────────────┘
+                                        │
+                    (3) When App Accesses Data (getName, etc.)
+                                        │
+                                        ▼
+                          ┌────────────────────────────┐
+                          │         Database           │
+                          │ (Fetches Real Employee Data)│
+                          └─────────────┬──────────────┘
+                                        │
+                    (4) Returns Actual Data to Hibernate
+                                        │
+                                        ▼
+                          ┌────────────────────────────┐
+                          │        Application         │
+                          │ (Now holds Real Object)    │
+                          └────────────────────────────┘
+
+4) Connection Pooling--> To get connection with DB--->DriverManager class--->Physical connection, DataSource interface-->Connection pool
+---------------------
+-Connection pool-->Memory area, buffer,temporary memory where db connections stored(Ready made connections)
+-Hibernate has a built-in connection poolling mechanism, where it creates a pool when app is started, maintain it and destroys the pool when app shutdown
+┌────────────────────────────┐
+│        Java App            │
+│  (JDBC / Hibernate / JPA)  │
+└─────────────┬──────────────┘
+              │
+   (1) Request a DB connection
+              │
+              ▼
+┌────────────────────────────┐
+│        DataSource          │
+│ (Configured in app)        │
+│ Acts as bridge to the pool │
+└─────────────┬──────────────┘
+              │
+   (2) Fetch available connection
+              │
+              ▼
+┌────────────────────────────┐
+│     Connection Pool        │
+│ (HikariCP, C3P0, etc.)     │
+│ Pre-created connections:   │
+│ [Conn1] [Conn2] [Conn3]... │
+└─────────────┬──────────────┘
+              │
+   (3) Provide one connection
+              │
+              ▼
+┌────────────────────────────┐
+│         Database            │
+│ Executes SQL queries, etc.  │
+└─────────────┬──────────────┘
+              │
+   (4) Return results to App
+              │
+              ▼
+┌────────────────────────────┐
+│        Java App            │
+│ Processes results           │
+│ and closes connection       │
+└─────────────┬──────────────┘
+              │
+   (5) Connection is **not destroyed** —
+       it’s **returned to the pool**
+       for **reuse** by next request
+              │
+              ▼
+┌────────────────────────────┐
+│     Connection Pool        │
+│ Conn1 is now free again    │
+└────────────────────────────┘
+
+
+               ┌────────────────────────────┐
+               │      Application Start      │
+               └──────────────┬──────────────┘
+                              │
+                     (1) Hibernate Initialized
+                              │
+                              ▼
+               ┌────────────────────────────┐
+               │  Hibernate Connection Pool │
+               │   (Built-in Mechanism)     │
+               ├────────────────────────────┤
+               │ Creates pool of connections│
+               │ e.g., [Conn1][Conn2][Conn3]│
+               │ Maintains them for reuse   │
+               └──────────────┬──────────────┘
+                              │
+                   (2) Hibernate Sessions use
+                        connections from pool
+                              │
+                              ▼
+               ┌────────────────────────────┐
+               │         Database            │
+               │  (SQL executed via JDBC)    │
+               └──────────────┬──────────────┘
+                              │
+                   (3) When work completes,
+                       connection returned to pool
+                              │
+                              ▼
+               ┌────────────────────────────┐
+               │  Hibernate Connection Pool │
+               │ Connection now reusable    │
+               └──────────────┬──────────────┘
+                              │
+                 (4) Application Shutdown
+                              │
+                              ▼
+               ┌────────────────────────────┐
+               │   Pool destroyed, all DB    │
+               │   connections closed safely │
+               └────────────────────────────┘
+5) Criteria---> To get same data from database, we can write different queries. but, a query which returns the data fastly is important.
+-----------
+-Example--> Query1-->select * from emp;
+            Query2-->select empno,ename,sal,deptno from emp; (This is faster)
+-In Hibernate, Criteria API is provided to create tuned queries. So an app will fetch data fastly from DB, and hence the performance is improved.
+
+6) Locking--->When two transactions concurrently working on same data, then one transactions made changes should not be overridden by another transactions
+----------
+-Transaction operations-->Insert, Update and Delete
+-By default, multiple transactions can work on the same data concurrently. so it is possible that changes made by one transaction can be overridden by the another transaction
+-To prevent it, hibernate has provided locking
+-Types of Locking on multiple transactions working on the same data
+   Optimistic Locking
+   Pessimistic Locking
+  
+7) Associations: Hibernate Support Associations/relationships
+----------------
+-OneToMany
+-ManyToOne
+-ManyToMany
+-OneToOne
+
+--Files required for first application
+---------------------------------------
+-POJO class (Plain Old Java Object)--->class not extending any class or implementing any interface from any API(Hibernate,Struts etc) except java.io.Serializable interface
+-----------
+example:
+        Class A{         ------>POJO Class
+		   //variables
+		   //methods
+		}
+		
+		Class B extends A{ ------>If base is POJO class then, derived class is also POJO class
+		   //variables
+		   //methods
+		}
+Note: Every Java Bean is Pojo Class, but every POJO Class is not a Java Bean class
+Note: Java Bean--->Follows below rules
+                   -Class must be public
+				   -Class must contain default constructor/paramet-less constructor/paramet-less
+				   -private memeber should contain setter/getter methods
+				   -Class can implement Serializable interface
+-Mapping file ---> It is used to map a Java Class with a database table and Java Class variable with table columns
+-------------
+                   Mapping can be done in 2 ways
+                    -XML file(____.hbm.xml)	
+                    -annotations(JPA)		
+   exmaple:-->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC 
+    "-//Hibernate/Hibernate Mapping DTD 3.0//EN" 
+    "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping> 
+    <!-- Mapping Java class to table -->
+    <class name="com.alchemist.model.Employee" table="employee">
+        
+        <!-- Primary Key Mapping -->
+        <id name="id" column="emp_id">
+            <generator class="increment"/>
+        </id>
+        
+        <!-- Other Properties -->
+        <property name="name" column="emp_name" type="string"/>
+        <property name="department" column="department" type="string"/>  ----->column attribute is optional when property name and column name matching
+        <property name="salary" column="salary" type="double"/>
+        <property name="joiningDate" column="joining_date" type="date"/>
+
+    </class>
+</hibernate-mapping>
+
+					
+-Configuration File---> based on number of db's in application
+-------------------
+-configuraion file is for configuring below things
+       -Connection properties
+	   -Hibernate properties
+	   -Mapping files
+	
+	Exmaple-->hibernate.cfg.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC 
+    "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+    "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+
+    <session-factory>
+
+        <!-- Database Connection Settings -->
+        <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
+        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/employee_db</property>
+        <property name="hibernate.connection.username">root</property>
+        <property name="hibernate.connection.password">root</property>
+
+        <!-- JDBC Connection Pooling (Hibernate built-in) -->
+        <property name="hibernate.connection.pool_size">10</property>
+
+        <!-- SQL Dialect -->
+        <property name="hibernate.dialect">org.hibernate.dialect.MySQL8Dialect</property>   --->//Prepare SQL Query to run ob db
+
+        <!-- Optional Settings -->
+        <property name="hibernate.show_sql">true</property>        ---->//to log queries
+        <property name="hibernate.format_sql">true</property>
+        <property name="hibernate.hbm2ddl.auto">update</property>  ----->//to create table if not exists
+
+        <!-- Caching (optional) -->
+        <property name="hibernate.cache.use_second_level_cache">false</property>
+
+        <!-- Mapping File -->
+        <mapping resource="com/alchemist/model/Employee.hbm.xml"/>   ----->their can be multiple mapping files(1db=1 configuraion file)
+
+    </session-factory>
+
+</hibernate-configuration>
+
+	
+-Client Program

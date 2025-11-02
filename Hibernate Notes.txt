@@ -619,7 +619,7 @@ public class Student {
         <property name="hibernate.show_sql">true</property>
 
         <!-- Automatically create/update table -->
-        <property name="hibernate.hbm2ddl.auto">update</property>
+        <property name="hibernate.hbm2ddl.auto">update</property>   //initially can keep it as create
 
         <!-- Mapping file -->
         <mapping resource="Student.hbm.xml"/>
@@ -631,6 +631,9 @@ public class Student {
 
 public interface StudentDao {
 	void saveStudent(Student student);
+	Student loadStudent(int sid);
+	Student updateStudentMarks(int sid, int marks);
+	void deleteStudent(int sid);
 }
 
 --Create implementation class
@@ -638,69 +641,195 @@ public interface StudentDao {
 
 public class StudentDaoImpl implements StudentDao {
 
-    // Declare a SessionFactory (heavyweight object - shared across the application)
-    private SessionFactory factory;
+	// Declare a SessionFactory (heavyweight object - shared across the application)
+	private SessionFactory factory;
 
-    // Constructor: Initializes Hibernate and builds the SessionFactory
-    public StudentDaoImpl() {
-        // Step 1: Create a ServiceRegistry — reads hibernate.cfg.xml and applies configuration
-        ServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder()
-                .configure("hibernate.cfg.xml") // make sure the file name is correct
-                .build();
+	// Constructor: Initializes Hibernate and builds the SessionFactory
+	public StudentDaoImpl() {
+		// Step 1: Create a ServiceRegistry — reads hibernate.cfg.xml and applies
+		// configuration
+		ServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder().configure("hibernate.cfg.xml") // make
+																												// sure
+																												// the
+																												// file
+																												// name
+																												// is
+																												// correct
+				.build();
 
-        // Step 2: Create Metadata from the service registry (contains mappings and configuration)
-        Metadata metadata = new MetadataSources(serviceRegistry)
-                .getMetadataBuilder()
-                .build();
+		// Step 2: Create Metadata from the service registry (contains mappings and
+		// configuration)
+		Metadata metadata = new MetadataSources(serviceRegistry).getMetadataBuilder().build();
 
-        // Step 3: Build the SessionFactory from metadata (used to open sessions)
-        factory = metadata.getSessionFactoryBuilder().build();
-    }
+		// Step 3: Build the SessionFactory from metadata (used to open sessions)
+		factory = metadata.getSessionFactoryBuilder().build();
+	}
 
-    @Override
-    public void saveStudent(Student student) {
-        // Step 4: Open a new Session (lightweight object, not thread-safe)
-        Session session = factory.openSession();
+	@Override
+	public void saveStudent(Student student) {
+		// Step 4: Open a new Session (lightweight object, not thread-safe)
+		Session session = factory.openSession();
 
-        // Step 5: Begin a transaction (required for INSERT/UPDATE/DELETE)
-        Transaction t = session.beginTransaction();
+		// Step 5: Begin a transaction (required for INSERT/UPDATE/DELETE)
+		Transaction t = session.beginTransaction();
 
-        try {
-            // Step 6: Save the Student entity to the database
-            session.save(student);  
-            // OR, in Hibernate 6+, you can use: session.persist(student);
+		try {
+			// Step 6: Save the Student entity to the database
+			session.save(student);
+			// OR, in Hibernate 6+, you can use: session.persist(student);
 
-            System.out.println("✅ Student object is persisted in the database.");
+			System.out.println("✅ Student object is persisted in the database.");
 
-            // Step 7: Commit the transaction — finalizes the changes in DB
-            t.commit();
+			// Step 7: Commit the transaction — finalizes the changes in DB
+			t.commit();
 
-        } catch (Exception e) {
-            // Step 8: If any issue occurs, rollback the transaction to maintain DB integrity
-            t.rollback();
-            System.out.println("❌ Issue occurred while persisting Student object.");
-            e.printStackTrace();
-        } finally {
-            // Step 9: Close the Session to release JDBC and Hibernate resources
-            session.close();
+		} catch (Exception e) {
+			// Step 8: If any issue occurs, rollback the transaction to maintain DB
+			// integrity
+			t.rollback();
+			System.out.println("❌ Issue occurred while persisting Student object.");
+			e.printStackTrace();
+		} finally {
+			// Step 9: Close the Session to release JDBC and Hibernate resources
+			session.close();
 
-            // Note: Do not close factory here; it should live for the entire app lifecycle.
-        }
-    }
+			// Note: Do not close factory here; it should live for the entire app lifecycle.
+		}
+	}
+
+	@Override
+	public Student loadStudent(int sid) {
+		// TODO Auto-generated method stub
+		/*
+		 * load():lazy loading get():early loading args: 1) Classname.class 2) id
+		 * value(primary key value)
+		 */
+		Session session = factory.openSession();
+		// Student student = session.get(Student.class, sid); //for early loading-->we
+		// can see Select Query in the console
+		Student student = session.load(Student.class, sid); // for lazy loading
+		try {
+			Thread.sleep(30000);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		System.out.println("Name of the Student: " + student.getSname());
+		session.close(); // Exception while lazy loading so comment it, use only when early loading or
+							// add delay to execution
+		return student;
+	}
+
+	@Override
+	public Student updateStudentMarks(int sid, int marks) {
+		// TODO Auto-generated method stub
+		Session session = factory.openSession();
+		Student student = session.get(Student.class, sid);
+		Transaction t = session.beginTransaction();
+		try {
+			student.setMarks(marks);
+			session.update(student);
+			t.commit();
+			System.out.println("Record is Updated :)");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			t.rollback();
+			System.out.println("Record is not Updated :(");
+		} finally {
+			session.close();
+		}
+		return student;
+	}
+
+	@Override
+	public void deleteStudent(int sid) {
+		// TODO Auto-generated method stub
+		Session session = factory.openSession();
+		Student student = session.get(Student.class, sid);
+		Transaction t = session.beginTransaction();
+		try {
+			session.delete(student);
+			t.commit();
+			System.out.println("Record Deleted Successfully: ");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			t.rollback();
+			System.out.println("Record Deletion Failed");
+		}finally {
+			session.close();
+		}
+
+	}
 }
+
 
 --Create client
 public class ClientApp {
 	public static void main(String[] args) {
 		StudentDao dao = new StudentDaoImpl();
 		
-		Student student = new Student();
-		student.setSid(101);
-		student.setSname("ROHIT");
-		student.setGender("Male");
-		student.setMarks(600);
+		/*
+		 * Student student = new Student(); 
+		 * student.setSid(101);
+		 * student.setSname("ROHIT"); 
+		 * student.setGender("Male"); 
+		 * student.setMarks(600);
+		 * 
+		 * dao.saveStudent(student);
+		 */
+		/*Student student = dao.loadStudent(1);*/
+		Student student = dao.updateStudentMarks(1, 720);
+		System.out.println(student);
 		
-		dao.saveStudent(student);
+		dao.deleteStudent(2);
 	}
 
 }
+
+Output: 
+ Hibernate: drop table if exists STUDENT
+Nov 02, 2025 9:44:31 PM org.hibernate.resource.transaction.backend.jdbc.internal.DdlTransactionIsolatorNonJtaImpl getIsolatedConnection
+INFO: HHH10001501: Connection obtained from JdbcConnectionAccess [org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator$ConnectionProviderJdbcConnectionAccess@563ccd31] for (non-JTA) DDL execution was not in auto-commit mode; the Connection 'local transaction' will be committed and the Connection will be set into auto-commit mode.
+Hibernate: create table STUDENT (MARKS integer, SID integer not null, GENDER varchar(255), SNAME varchar(255), primary key (SID)) engine=InnoDB
+Nov 02, 2025 9:44:31 PM org.hibernate.resource.transaction.backend.jdbc.internal.DdlTransactionIsolatorNonJtaImpl getIsolatedConnection
+INFO: HHH10001501: Connection obtained from JdbcConnectionAccess [org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator$ConnectionProviderJdbcConnectionAccess@33ec2c0c] for (non-JTA) DDL execution was not in auto-commit mode; the Connection 'local transaction' will be committed and the Connection will be set into auto-commit mode.
+Hibernate: select max(SID) from STUDENT
+✅ Student object is persisted in the database.
+Hibernate: insert into STUDENT (GENDER,MARKS,SNAME,SID) values (?,?,?,?)
+
+--hibernate.hbm2ddl.auto
+------------------------
+create-->Hibernate drops the existing tables, creates new tables in DB to perform operations
+update-->Hibernate uses existing tables to perform operations
+create-drop--->Hibernate creates new tables to perform operations and drops the table at the end of the application. Mostly used in Unit testing
+validate(default)--->Hibernate validates the tables and columns in the db. If a table/a column doesn't exists, it will throw an Exception. This is the default value of property
+Note: For mysql, initially with update also can create table
+
+Lazy Loading:-->
+-------------
+@Override
+	public Student loadStudent(int sid) {
+		Session session = factory.openSession();
+		//Student student = session.get(Student.class, sid);      //for early loading-->we can see Select Query in the console
+		Student student = session.load(Student.class, sid);   //for lazy loading
+		try {
+			Thread.sleep(30000);
+		 }catch(Exception e) {
+			 e.printStackTrace();
+		 }
+		System.out.println("Name of the Student: "+student.getSname());
+		session.close();          //Exception while lazy loading so comment it, use only when early loading or add delay to execution
+		return student;
+	}
+Note: while lazy loading/early loading second parameter is primary key
+output:
+Hibernate: select s1_0.SID,s1_0.GENDER,s1_0.MARKS,s1_0.SNAME from STUDENT s1_0 where s1_0.SID=?
+Name of the Student: ROHIT
+Student [sid=1, sname=ROHIT, gender=Male, marks=600]
+	
+-->If sid doesn't exists---> get()-->throws NullPointerException
+                             load()--->throws ObjectNotFoundException
+							 
+--If table does not have primary key, can we able to map java class with table---> No issue in mapping, but we will get issue in retrieval
+
+--Caching--->
+---------

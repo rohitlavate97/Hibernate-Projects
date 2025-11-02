@@ -29,5 +29,9 @@ public class Student {
 	public void setMarks(Integer marks) {
 		this.marks = marks;
 	}
+	@Override
+	public String toString() {
+		return "Student [sid=" + sid + ", sname=" + sname + ", gender=" + gender + ", marks=" + marks + "]";
+	}
 	
 }

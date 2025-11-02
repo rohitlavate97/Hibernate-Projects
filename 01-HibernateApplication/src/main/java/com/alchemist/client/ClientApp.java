@@ -8,13 +8,20 @@ public class ClientApp {
 	public static void main(String[] args) {
 		StudentDao dao = new StudentDaoImpl();
 		
-		Student student = new Student();
-		student.setSid(101);
-		student.setSname("ROHIT");
-		student.setGender("Male");
-		student.setMarks(600);
+		/*
+		 * Student student = new Student(); 
+		 * student.setSid(101);
+		 * student.setSname("ROHIT"); 
+		 * student.setGender("Male"); 
+		 * student.setMarks(600);
+		 * 
+		 * dao.saveStudent(student);
+		 */
+		/*Student student = dao.loadStudent(1);*/
+		Student student = dao.updateStudentMarks(1, 720);
+		System.out.println(student);
 		
-		dao.saveStudent(student);
+		dao.deleteStudent(2);
 	}
 
 }

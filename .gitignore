@@ -1,0 +1,10 @@
+# Ignore IDE and workspace settings
+.metadata/
+.idea/
+
+# Optional: also ignore other system/project files
+*.iml
+*.log
+target/
+out/
+

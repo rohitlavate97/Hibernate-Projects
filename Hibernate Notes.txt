@@ -833,3 +833,51 @@ Student [sid=1, sname=ROHIT, gender=Male, marks=600]
 
 --Caching--->
 ---------
+Level 1 cache(Session-Level/L1 Cache/Local Cache): -->We can't enable or disable this cache, its by default
+--------------
+-Whenever session object created by default in hibernate, buffer(i.e cache memory) allocated for Object i.e Level 1 cache(1 MB)
+    Session session = factory.openSession();
+	Student student = session.get(Student.class, sid);  //when it calls get(), first hibernate check if object exists in cache, if not go to db and load object and store 1st into cache
+    Session other_session = factory.openSession();     
+    Student stu = other_session.get(Student.class, sid);  //Here we get it from cache	
+	
+-One session's cache cannot be used by other session i.e every session maintains own cache.(i.e Every session object has its own cache)
+-Whenever a session object is created, automatically its cache created. when session closed cache is also closed
+-We don't have any properties to enable/disable this Level1 cache.
+           Student student = session.get(Student.class, 101);
+		   Student student = session.get(Student.class, 102);
+		   Student student = session.get(Student.class, 101);
+    In above code, hibernate hits db 2 times-->we can see select query 2 times
+Requirement-->To remove 101 from cache i.e Delete particular object from cache
+   we can do it using evict() method---->session.evict();
+           -->To remove all the objects from cache from cache at a time
+   we can do it using clear() method---->session.clear();
+Note: close() --->Removes Cache
+    l clear() --->Removes object from cache
+	
+	
+	@Override
+	public void levelOneCacheTest() {     //add in daoimpl
+		// TODO Auto-generated method stub
+		System.out.println("--Check the console for number of queries");
+		Session session = factory.openSession();
+		Student s1 = session.get(Student.class, 1);
+		Student s2 = session.get(Student.class, 2);
+		Student s3 = session.get(Student.class, 1);
+		
+		Session other_session = factory.openSession();
+		Student s4 = other_session.get(Student.class, 1);
+	}
+	
+	
+--Drawback of the cache
+-----------------------
+-If any changes are made to the object in DB, they are not reflected in cache automatically
+Solution--> You have to explicitly refresh the cache for every same time interval to make the object in cache are in sync with database
+-DAO classes are tightly coupled with ORM framework(ex-hibernate). we will make it loosely coupled, so that we can move to other ORM tool easily.
+This can be done with JPA specifications. we will use JPA annotations to define mapping
+Note:--> Annotations are like interface(i.e special interface--->use @Interface)
+         For annotations, parser class(like implementation class for interface) provided by framework
+		 
+--JPA Annotations for Mapping:-->javax.persistence package of JPA
+-----------------------------

@@ -131,4 +131,17 @@ public class StudentDaoImpl implements StudentDao {
 		}
 
 	}
+
+	@Override
+	public void levelOneCacheTest() {
+		// TODO Auto-generated method stub
+		System.out.println("--Check the console for number of queries");
+		Session session = factory.openSession();
+		Student s1 = session.get(Student.class, 1);
+		Student s2 = session.get(Student.class, 2);
+		Student s3 = session.get(Student.class, 1);
+		
+		Session other_session = factory.openSession();
+		Student s4 = other_session.get(Student.class, 1);
+	}
 }

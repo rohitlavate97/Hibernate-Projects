@@ -7,4 +7,5 @@ public interface StudentDao {
 	Student loadStudent(int sid);
 	Student updateStudentMarks(int sid, int marks);
 	void deleteStudent(int sid);
+	void levelOneCacheTest();
 }

@@ -638,7 +638,7 @@ public interface StudentDao {
 
 --Create implementation class
 
-
+mm 
 public class StudentDaoImpl implements StudentDao {
 
 	// Declare a SessionFactory (heavyweight object - shared across the application)
@@ -881,3 +881,312 @@ Note:--> Annotations are like interface(i.e special interface--->use @Interface)
 		 
 --JPA Annotations for Mapping:-->javax.persistence package of JPA
 -----------------------------
+Class Level annotations
+-@Entity-->It will declare that POJO class is Entity class
+-@Table--> It is used to map a Java Class/POJO class with a table in the Database(This annotation is optional)
+Field Level annotations
+-@Id-->It is used to map a variable in our java class with a primary key column in a table
+-@Column-->It is used to map a variable with a column in the table(This annotation is optional)
+Note: If we are using remote db, the we have to implement Serializable inteface
+
+@Entity
+@Table(name="TBL_STUDENT")
+public class Student implements Serializable{
+    @Id
+	@column(name = "SID")
+	private Integer sid;
+	@column(name = "SNAME")
+	private String sname;
+	@column(name = "GENDER")
+	private String gender;
+	@column(name = "MARKS")
+	private Integer marks;
+	@Transient
+	private String result;
+	//setters and getters
+}
+Note:--> Using @Transient for variable which does not have a corresponding column in the table
+     -->We can map Java class with table having more columns when extra columns of the table does not contain NOT NULL constraint
+	 --While working with JPA and Hibernate, we have to create 'persistence.xml' file(under META-INF directory inside src/main/resources) instead of hibernate configuration file
+
+persistence.xml
+--------------- 
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="http://xmlns.jcp.org/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence
+                                 http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd"
+             version="2.1">
+
+    <!-- Persistence Unit -->
+    <persistence-unit name="studentPU" transaction-type="RESOURCE_LOCAL">
+
+        <!-- Hibernate as Provider -->
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+
+        <!-- Entity Class -->
+        <class>com.alchemist.entity.Student</class>
+
+        <!-- Connection Properties -->
+        <properties>
+            <property name="javax.persistence.jdbc.driver" value="com.mysql.cj.jdbc.Driver"/>
+            <property name="javax.persistence.jdbc.url" value="jdbc:mysql://localhost:3306/testdb"/>
+            <property name="javax.persistence.jdbc.user" value="root"/>
+            <property name="javax.persistence.jdbc.password" value="root"/>
+
+            <!-- Hibernate Settings -->
+            <property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect"/>
+            <property name="hibernate.hbm2ddl.auto" value="update"/>
+            <property name="hibernate.show_sql" value="true"/>
+            <property name="hibernate.format_sql" value="true"/>
+
+            <!-- Optional: Connection Pool -->
+            <property name="hibernate.connection.pool_size" value="10"/>
+        </properties>
+    </persistence-unit>
+</persistence>
+
+
+Note: Like SessionFactory, their is EntityManagerFactory in JPA
+      JPA has package---> javax.persistence.EntityManagerFactory
+	                      javax.persistence.EntityManager
+						  javax.persistence.EntityTransaction
+						  javax.persistence.Persistence
+	  These are the mostly used packages
+	  
+JpaHibernateApplication
+-----------------------
+--You don’t strictly need JAXB in modern Hibernate (6.x) + JPA setups.In older Hibernate versions (≤ 5.3), hibernate.cfg.xml and *.hbm.xml files used JAXB (Java Architecture for XML Binding) 
+to parse XML configuration and mapping files.
+
+<dependency>
+    <groupId>javax.xml.bind</groupId>
+    <artifactId>jaxb-api</artifactId>
+    <version>2.3.1</version>
+</dependency>
+<dependency>
+    <groupId>org.glassfish.jaxb</groupId>
+    <artifactId>jaxb-runtime</artifactId>
+    <version>2.3.1</version>
+</dependency>
+
+--Modern Hibernate (6.x)-->Starting with Hibernate 6.x, JAXB is no longer required for annotation-based (JPA) mappings.
+✅ You don’t need JAXB if:
+You are using @Entity, @Table, @Column annotations (JPA annotations)
+You configure Hibernate via persistence.xml
+You don’t use .hbm.xml mapping files
+--In Hibernate 6, EntityManager API is already included inside hibernate-core.
+
+<dependencies>
+		<!-- JPA Dependencies -->
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-entitymanager</artifactId>
+			<version>5.2.17.Final</version>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate.javax.persistence</groupId>
+			<artifactId>hibernate-jpa-2.1-api</artifactId>
+			<version>1.0.2.Final</version>
+		</dependency>
+		<!-- Hibernate Dependency -->
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-core</artifactId>
+			<version>5.3.1.Final</version>
+		</dependency>
+		<!-- MySQL Driver Dependency -->
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>8.0.31</version>
+		</dependency>
+		<!-- JAXB Dependencies -->
+		<dependency>
+			<groupId>javax.xml.bind</groupId>
+			<artifactId>jaxb-api</artifactId>
+			<version>2.3.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.sun.xml.bind</groupId>
+			<artifactId>jaxb-core</artifactId>
+			<version>2.3.0.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.sun.xml.bind</groupId>
+			<artifactId>jaxb-impl</artifactId>
+			<version>2.3.1</version>
+		</dependency>
+	</dependencies>
+
+Note: Remove These (Not Needed)
+❌ hibernate-entitymanager → Already included in hibernate-core since 5.2+.
+❌ hibernate-jpa-2.1-api → Use javax.persistence-api:2.2 instead.
+(It’s newer and matches Hibernate 5.3.1).
+❌ com.sun.xml.bind:jaxb-core & jaxb-impl — You can safely replace them with a single jaxb-runtime dependency (cleaner and modern).
+
+--create src/main/resources-->then Update project, and then crate META-INF folder inside it, again Update project
+--Inside META-INF-->create persistence.xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="http://xmlns.jcp.org/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence
+                                 http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd"
+             version="2.1">
+
+    <!-- Persistence Unit -->
+    <persistence-unit name="products" transaction-type="RESOURCE_LOCAL">
+    <!--transaction-type="JTA", when multiple dbs-->
+
+        <!-- Hibernate as Provider -->
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+
+        <!-- Entity Class -->
+        <class>com.alchemist.entity.ProductEntity</class>
+
+        <!-- Connection Properties -->
+        <properties>
+            <property name="javax.persistence.jdbc.driver" value="com.mysql.cj.jdbc.Driver"/>
+            <property name="javax.persistence.jdbc.url" value="jdbc:mysql://localhost:3306/sbms"/>
+            <property name="javax.persistence.jdbc.user" value="root"/>
+            <property name="javax.persistence.jdbc.password" value="admin@123"/>
+
+            <!-- Hibernate Settings -->
+            <property name="hibernate.dialect" value="org.hibernate.dialect.MySQL8Dialect"/>   //change dialect to latest
+            <property name="hibernate.hbm2ddl.auto" value="update"/>
+            <property name="hibernate.show_sql" value="true"/>
+            <property name="hibernate.format_sql" value="true"/>
+            <property name="hibernate.dialect.storage_engine" value="innodb"/>    //to avoid error
+
+
+            <!-- Optional: Connection Pool -->
+            <property name="hibernate.connection.pool_size" value="10"/>
+        </properties>
+    </persistence-unit>
+</persistence>
+
+
+
+@Entity
+@Table(name = "PRODUCT_TBL")
+public class ProductEntity {
+	@Id
+	@Column(name = "product_id")
+	private Integer productId;
+	@Column(name = "product_name")
+	private String productName;
+	private Integer quantity;
+	@Column(name = "unit_price")
+	private Double unitPrice;
+	@CreationTimestamp
+	@Column(name = "created_on")
+	private LocalDate createdOn;
+	@UpdateTimestamp
+	@Column(name = "update_on")
+	private LocalDate updatedOn;
+	//getters and setters
+}
+
+public interface ProductDao {
+	ProductEntity saveProduct(ProductEntity product);
+	ProductEntity loadProductById(Integer productId);
+	ProductEntity updateProductById(Integer productId,Double new_unitPrice);
+	void deleteProductById(Integer productId);
+}
+
+
+package com.alchemist.daoimpl;
+
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityTransaction;
+import javax.persistence.Persistence;
+
+import com.alchemist.dao.ProductDao;
+import com.alchemist.entity.ProductEntity;
+
+public class ProductDaoImpl implements ProductDao {
+
+	private EntityManagerFactory factory = Persistence.createEntityManagerFactory("products");
+
+	@Override
+	public ProductEntity saveProduct(ProductEntity product) {
+		EntityManager entityManager = factory.createEntityManager();
+		EntityTransaction tx = entityManager.getTransaction();
+		tx.begin();
+		try {
+			entityManager.persist(product);
+			tx.commit();
+			System.out.println("Product is inserted in DB");
+		} catch (Exception e) {
+			tx.rollback();
+			System.out.println("Error in inserting a product in db...." + e);
+		} finally {
+			entityManager.close();
+		}
+		return product;
+	}
+
+	@Override
+	public ProductEntity loadProductById(Integer productId) {
+		EntityManager entityManager = factory.createEntityManager();
+		/*
+		 * find(): Early load getReference(): Lazy Load
+		 */
+		ProductEntity product = entityManager.find(ProductEntity.class, productId);
+		entityManager.close();
+		return product;
+	}
+
+	@Override
+	public ProductEntity updateProductById(Integer productId, Double new_unitPrice) {
+		EntityManager entityManager = factory.createEntityManager();
+		ProductEntity product = entityManager.find(ProductEntity.class, productId);
+		if (product == null) {
+			System.out.println("Product ID not found: " + productId);
+			return null;
+		}
+		EntityTransaction tx = entityManager.getTransaction();
+		tx.begin();
+		product.setUnitPrice(new_unitPrice);
+		tx.commit();
+		entityManager.close();
+		return product;
+	}
+
+	@Override
+	public void deleteProductById(Integer productId) {
+		EntityManager entityManager = factory.createEntityManager();
+		ProductEntity product = entityManager.find(ProductEntity.class, productId);
+		if (product == null) {
+			System.out.println("Product ID not found: " + productId);
+			return;
+		}
+		EntityTransaction tx = entityManager.getTransaction();
+		tx.begin();
+		entityManager.remove(product);
+		tx.commit();
+		entityManager.close();
+		System.out.println("🗑️ Deleted product: " + productId);
+	}
+
+}
+
+
+public class ClientApp {
+    public static void main(String[] args) {
+        ProductDao dao = new ProductDaoImpl();
+        
+        ProductEntity entity = new ProductEntity();
+        entity.setProductId(1);
+        entity.setProductName("Laptop");
+        entity.setQuantity(3);
+        entity.setUnitPrice(50000.00);
+        
+        dao.saveProduct(entity);
+    }
+}
+
+
+

@@ -1206,5 +1206,37 @@ public class ClientApp {
     }
 }
 
-
+Composite primary key: (How to work when their is composite primary key)---->Combination of columns as primary key is known as Composite key
+---------------------
++---------+----------+----------------+--------+     Roll number can't be primary key here as RollNo has duplicate values, but combination of RollNo and Section can't be repeated
+| RollNo  | Section  | Name           | Marks  |
++---------+----------+----------------+--------+
+| 101     | A        | Rohit Lavate   | 92     |
+| 102     | A        | Mohammed Khan  | 88     |
+| 101     | B        | Sneha Patil    | 95     |
+| 103     | B        | Ajit Sharma    | 90     |
++---------+----------+----------------+--------+
+-To work with Composite Id in JPA, we have to create two classes
+1)Embeddable class
+2)Entity Class
+--Embeddable class should contain the variables to map with composite primary key columns. This class must implement Serializable interface
+     @Embeddable
+	 public class StudentComposteKey implements java.io.Serialiazable{
+	   @Column(name = "rollno")
+	   private Integer rollNumber;
+	   @Column(name = "section")
+	   private String section;
+	   //Setter and Getter
+	}
+	
+	 @Entity
+	 @Table(name = "tbl_student")
+	 public class StudentEntity{
+	   @EmbeddedId
+	   private StudentCompositeKey compositeKey;
+	   
+	   @Column(name = "sname")
+	   private String studentName;
+	   private Integer marks;
+	  }
 

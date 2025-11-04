@@ -10,7 +10,11 @@ import com.alchemist.entity.ProductEntity;
 
 public class ProductDaoImpl implements ProductDao {
 
-	private EntityManagerFactory factory = Persistence.createEntityManagerFactory("products");
+	private EntityManagerFactory factory;
+	
+	public ProductDaoImpl() {
+		factory = Persistence.createEntityManagerFactory("products");
+	}
 
 	@Override
 	public ProductEntity saveProduct(ProductEntity product) {
@@ -72,5 +76,15 @@ public class ProductDaoImpl implements ProductDao {
 		entityManager.close();
 		System.out.println("🗑️ Deleted product: " + productId);
 	}
+	
+	public void closeFactory() {
+	    if (factory != null && factory.isOpen()) {
+	        factory.close();
+	        System.out.println("EntityManagerFactory closed successfully.");
+	    } else {
+	        System.out.println("EntityManagerFactory already closed or null.");
+	    }
+	}
+
 
 }

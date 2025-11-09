@@ -1395,3 +1395,224 @@ public interface ProductDao {
 		entityManager.close();
 		
 	}
+
+
+--JPQL(Java Persistence Query Language)----->javax.persistence.query
+---------------------------------------
+-when we are using find(), remove()-->it happens on only one object
+-For bulk operations-->to load or Update or delete multiple objects or bulk objects at a time from db-->we have to use queries(JPQL or SQL)
+-JPQL queries are database independent and SQL queries are database dependent
+-When we write a JPQL query, it will converted to SQL query with respect to the underlying db by the JPA provider(Hibernate)
+-JPQL looks like SQL, but in place of table name provide entity class reference variable, and in place of column names, provide variable names
+Example-->
+           SQL Query--> select * from emp
+		   JPQL Query--> select e from EmployeeEntity e  (e is entity class reference variable)  or
+		                 from EmployeeEntity e (when selecting all attributes)
+						 
+		   SQL Query--> select ename,sal from emp
+		   JPQL Query--> select e.employeeName,e.salary from EmployeeEntity e (when selecting specific column)
+		   
+		   SQL Query--> select * from emp where sal>?
+		   JPQL Query--> select e from EmployeeEntity e where e.salary>?1    or                (Here ?1 is index parameter)
+		                 from EmployeeEntity e where e.salary>?1
+						 
+		   SQL Query--> select * from emp where deptno=? and sal>?
+		   JPQL Query--> select e from EmployeeEntity e where deptNumber=?1 and e.salary>?2   or
+		                 from EmployeeEntity where e.deptNumber=?1 and e.salary>?2            or
+						 from EmployeeEntity e where e.deptNumber=:dno and e.salary>:esal      (Here :dno,:esal are Named parameters--->Name can be anything)
+						 
+		   SQL Query--> update emp set sal=? where deptno=?
+		   JPQL Query--> update EmployeeEntity e
+		                 set e.salary=?1 where e.deptNumber=?2         or
+						 
+						 update EmployeeEntity each
+						 set e.salary=:esal where e.deptNumber=:dno
+						 
+		   SQL Query--> select e.ename,d.dname from emp e
+		                join dept d on e.deptno = d.deptno
+		   JPQL Query-->select e.empName, d.deptName from EmployeeEntity e
+		                join DepartmentEntity d on e.deptNumber=d.deptNumber
+						
+-How to run the JPQL Queries
+-----------------------------
+-Create Query(interface) object
+-Set the Parameter values
+-Execute it
+Example:1)
+        String jpql = "FROM EmployeeEntity e where e.deptNumber=?1";
+		Query q = entityManager.createQuery(jpql);
+		q.setParameter(1,20);                           //1 is parameter index, 20 is value
+		List<EmployeeEntity> lst = q.getResultList();   //untyped list---->returns multiple entities from db
+		
+		2)
+		Query q = entityManager.createQuery("From EmployeeEntity e where e.empNumber=:eno");
+		q.setParameter("eno",7788);                     //Named Parameter
+		Object o = q.getSingleResult();                 //retrieves single result(Need to cost it)
+		EmployeeEntity e =(EmployeeEntity)obj;
+		
+--Instead of Query object, we can create TypedQuery object(TypedQuery is sub-interface of Query interface)
+     https://docs.oracle.com/javaee/7/api/javax/persistence/TypedQuery.html--->To refer methods of TypedQuery
+	 example:--> 1) getSingleResult() : Returns a single entity
+	             2) getResultSet() : Returns multiple entities
+				 3) executeUpdate() : to execute update/delete statements
+--Query object returns untyped results, which means we need to do type casting the object into entity type.
+
+Example of TypedQuery object:
+        example 1:
+          String jpqlQuery = "From EmployeeEntity e where e.empNumber=?1";
+		  TypedQuery<EmployeeEntity> tq = entityManager.createQuery(jpqlQuery,EmployeeEntity.class);
+		  tq.setParameter(1,7788);
+		  EmployeeEntity emp = tq.getSingleResult();      //No Type casting required
+		  
+		example 2:
+		  String jpqlQuery = "Update EmployeeEntity e set e.salary=:esal where e.deptNumber=:dno";
+		  TypedQuery<Integer> tq = entityManager.createQuery(jpqlQuery,Integer.class);
+		  tq.setParameter("esal",5400.00);
+		  tq.setParameter("dno",20);
+		  EntityTransaction tx = entityManager.getTransaction();
+		  int count = tq.executeUpdate();
+		  tx.commit();
+		  
+		example 3:
+		  String jpqlQuery = "Select e.empName,e.salary from EmployeeEntity e";    //Query selects only particular columns
+		  //selecting partial records
+		  TypedQuery<Object> tq = createQuery(jpqlQuery,Object[].class);           //so use Object[]-->object array-->index 0(name), index 1(salary)
+		  List<Object> list = tq.getResultList();
+		  
+---JPQL app
+@Entity
+@Table(name = "EMPLOYEE_DTLS")
+public class EmployeeEntity {
+	@Id
+	@Column(name = "empno")
+	private Integer empNumber;
+	@Column(name = "ename")
+	private String empName;
+	@Column(name = "sal")
+	private Double salary;
+	@Column(name = "deptno")
+	private Integer deptNumber;
+	//getter,setter and toString()
+}
+
+
+public interface EmployeeDao {
+	void insertEmployee(EmployeeEntity employee);
+	void insertEmployeeUsingNativeQuery(Integer empNo, String empName, Double salary, Integer deptNo);
+	EmployeeEntity fetchEmployeeById(Integer empno);
+	List<EmployeeEntity> fetchEmployee();
+	List<Object[]> fetchNamesAndSalaries();
+}
+
+
+public class AppConstants {
+	public static final String QUERY_InsertEmployee = "INSERT INTO EMPLOYEE_DTLS (empno, ename, sal, deptno) VALUES (?, ?, ?, ?)";
+	public static final String QUERY_fetchEmployeeById = "From EmployeeEntity e where e.empNumber=?1";
+	public static final String QUERY_fetchEmployee = "From EmployeeEntity e";
+	public static final String QUERY_fetchNamesAndSalaries = "select e.empName, e.salary from EmployeeEntity e";
+}
+
+
+public class EmployeeDaoImpl implements EmployeeDao{
+	
+	EntityManagerFactory factory = Persistence.createEntityManagerFactory("emp");
+	
+	@Override
+	public void insertEmployee(EmployeeEntity employee) {
+	    EntityManager entityManager = factory.createEntityManager();
+	    entityManager.getTransaction().begin();
+	    entityManager.persist(employee);
+	    entityManager.getTransaction().commit();
+	    entityManager.close();
+	}
+	
+	@Override
+	public void insertEmployeeUsingNativeQuery(Integer empNo, String empName, Double salary, Integer deptNo) {
+		 EntityManager entityManager = factory.createEntityManager();
+		    try {
+		        entityManager.getTransaction().begin();
+		        
+		        entityManager.createNativeQuery(
+		            AppConstants.QUERY_InsertEmployee)
+		            .setParameter(1, empNo)
+		            .setParameter(2, empName)
+		            .setParameter(3, salary)
+		            .setParameter(4, deptNo)
+		            .executeUpdate();
+		        
+		        entityManager.getTransaction().commit();
+		        System.out.println("✅ Employee inserted successfully!");
+		    } catch (Exception e) {
+		        entityManager.getTransaction().rollback();
+		        e.printStackTrace();
+		        System.err.println("❌ Failed to insert employee: " + e.getMessage());
+		    } finally {
+		        entityManager.close();
+		    }
+		
+	}
+	
+	@Override
+	public EmployeeEntity fetchEmployeeById(Integer empno) {
+		EntityManager entityManager = factory.createEntityManager();
+		TypedQuery<EmployeeEntity> tq = entityManager
+				                 .createQuery(AppConstants.QUERY_fetchEmployeeById, EmployeeEntity.class);
+		tq.setParameter(1, empno);
+		EmployeeEntity e = tq.getSingleResult();
+		entityManager.close();
+		return e;
+	}
+
+	@Override
+	public List<EmployeeEntity> fetchEmployee() {
+		EntityManager entityManager = factory.createEntityManager();
+		TypedQuery<EmployeeEntity> tq = entityManager.createQuery(AppConstants.QUERY_fetchEmployee, EmployeeEntity.class);
+		List<EmployeeEntity> lstOfEmployees = tq.getResultList();
+		entityManager.close();
+		return lstOfEmployees;
+	}
+
+	@Override
+	public List<Object[]> fetchNamesAndSalaries() {
+		EntityManager em = factory.createEntityManager();
+		TypedQuery<Object[]> tq = em.createQuery(AppConstants.QUERY_fetchNamesAndSalaries, Object[].class);
+		List<Object[]> lst = tq.getResultList();
+		em.close();
+		return lst;
+	}
+
+}
+
+
+public class ClientApp {
+    public static void main(String[] args) {
+        EmployeeDao dao = new EmployeeDaoImpl();
+        
+		/*
+		 * EmployeeEntity employee = new EmployeeEntity(); 
+		 * employee.setEmpNumber(103);
+		 * employee.setEmpName("Ajay"); 
+		 * employee.setSalary(55000.00);
+		 * employee.setDeptNumber(1);
+		 * 
+		 * dao.insertEmployee(employee);
+		 * 
+		 * dao.insertEmployeeUsingNativeQuery(104, "Mayur", 57000.00, 1);
+		 */
+        EmployeeEntity fetchEmployeeById = dao.fetchEmployeeById(102);
+        System.out.println(fetchEmployeeById);
+        
+        System.out.println("----------------------------------");
+        
+        List<EmployeeEntity> lst = dao.fetchEmployee();
+        lst.forEach(System.out::println);
+        
+        System.out.println("----------------------------------");
+        
+        List<Object[]> fetchNamesAndSalaries = dao.fetchNamesAndSalaries();
+        fetchNamesAndSalaries.forEach(obj-> 
+        System.out.println(obj[0]+" "+obj[1]
+        		));
+    }
+}
+----------------------------------------------------------

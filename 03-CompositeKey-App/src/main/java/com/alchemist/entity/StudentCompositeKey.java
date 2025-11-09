@@ -25,5 +25,9 @@ public class StudentCompositeKey implements Serializable{
 	public void setSection(String section) {
 		this.section = section;
 	}
+	@Override
+	public String toString() {
+		return "StudentCompositeKey [rollNumber=" + rollNumber + ", section=" + section + "]";
+	}
 
 }

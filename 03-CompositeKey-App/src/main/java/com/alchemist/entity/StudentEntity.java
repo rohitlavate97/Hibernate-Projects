@@ -32,6 +32,11 @@ public class StudentEntity {
 	public void setMarks(String marks) {
 		this.marks = marks;
 	}
+	@Override
+	public String toString() {
+		return "StudentEntity [compositeKey=" + compositeKey + ", studentName=" + studentName + ", marks=" + marks
+				+ "]";
+	}
 	
 	
 }

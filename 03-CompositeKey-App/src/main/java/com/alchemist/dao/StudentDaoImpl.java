@@ -16,6 +16,7 @@ public class StudentDaoImpl implements StudentDao{
 		// TODO Auto-generated method stub
 		EntityManager entityManager = factory.createEntityManager();
 		EntityTransaction tx = entityManager.getTransaction();
+		tx.begin(); 
 		try {
 			entityManager.persist(entity);
 			tx.commit();

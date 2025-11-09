@@ -7,3 +7,5 @@ use sbms;
 show tables;
 
 select * from student;
+select * from product_tbl
+select * from student_dtls

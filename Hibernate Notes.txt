@@ -977,45 +977,52 @@ You configure Hibernate via persistence.xml
 You don’t use .hbm.xml mapping files
 --In Hibernate 6, EntityManager API is already included inside hibernate-core.
 
-<dependencies>
-		<!-- JPA Dependencies -->
-		<dependency>
-			<groupId>org.hibernate</groupId>
-			<artifactId>hibernate-entitymanager</artifactId>
-			<version>5.2.17.Final</version>
-		</dependency>
-		<dependency>
-			<groupId>org.hibernate.javax.persistence</groupId>
-			<artifactId>hibernate-jpa-2.1-api</artifactId>
-			<version>1.0.2.Final</version>
-		</dependency>
-		<!-- Hibernate Dependency -->
+	<dependencies>
+		<!-- ✅ Hibernate Core (includes EntityManager from 5.2+) -->
 		<dependency>
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-core</artifactId>
 			<version>5.3.1.Final</version>
 		</dependency>
-		<!-- MySQL Driver Dependency -->
+
+		<!-- ✅ JPA API -->
+		<dependency>
+			<groupId>javax.persistence</groupId>
+			<artifactId>javax.persistence-api</artifactId>
+			<version>2.2</version>
+		</dependency>
+
+		<!-- ✅ MySQL Driver -->
 		<dependency>
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
 			<version>8.0.31</version>
 		</dependency>
-		<!-- JAXB Dependencies -->
+
+		<!-- ✅ JAXB (required if using Java 11+) -->
 		<dependency>
 			<groupId>javax.xml.bind</groupId>
 			<artifactId>jaxb-api</artifactId>
 			<version>2.3.1</version>
 		</dependency>
+
 		<dependency>
-			<groupId>com.sun.xml.bind</groupId>
-			<artifactId>jaxb-core</artifactId>
-			<version>2.3.0.1</version>
-		</dependency>
-		<dependency>
-			<groupId>com.sun.xml.bind</groupId>
-			<artifactId>jaxb-impl</artifactId>
+			<groupId>org.glassfish.jaxb</groupId>
+			<artifactId>jaxb-runtime</artifactId>
 			<version>2.3.1</version>
+		</dependency>
+
+		<!-- ✅ JUnit 5 -->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-params</artifactId>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
@@ -1240,3 +1247,109 @@ Composite primary key: (How to work when their is composite primary key)---->Com
 	   private Integer marks;
 	  }
 
+--Entity(i.e Object) State in JPA/Hibernate
+-------------------------------------------
+-Transient State-->When object created newly(not yet stored in db)
+-Persistence State-->When called persist method and saved in db i.e Persist in db
+-Detached State-->Once transaction completed and Close entitymanager(Object entered into detached state)
+     -Whenever a new object is created for an entity class then that entity will be in transient state
+	 -After setting the data to the entity, we are going to persist the entity to the database. Now the entity is in persistence state
+	 -When entity manager is closed or when cleared or when an object is detached then, the entity enters into detached state
+	 
+	  StudentEntity student = new StudentEntity();      //Transient state
+	  student.setStudentName("Pavan"); 
+	  student.setMarks("450");
+	  
+	  EntityManager entityManager = factory.createEntityManager();
+	  EntityTransaction tx = entityManager.getTransaction();
+	  tx.begin();
+	  entityManager.persist(employee);                  //Persistence state
+	  
+	  tx.commit();
+	  entityManager.close();
+	  //employee                                        //Detached state
+	  
+	  
+                         ┌───────────────┐
+                         │   Transient   │
+                         │ (Not connected) │
+                         └───────────────┘
+                                  │
+                                  │
+                         ┌─────────────────────┐
+                         │     EntityManager    │
+                         │  (Manages entities)  │
+                         └─────────────────────┘
+                                  │
+                                  ▼
+                         ┌──────────────────────┐
+                         │     Persistent       │
+                         │ (Connected state —   │
+                         │  entity associated   │
+                         │  with EntityManager) │
+                         └──────────────────────┘
+                                  │
+                                  │ (Entity goes out of
+                                  │  EntityManager area)
+                                  ▼
+                         ┌──────────────────────┐
+                         │      Detached        │
+                         │ (Disconnected —       │
+                         │  changes not saved   │
+                         │  to database)        │
+                         └──────────────────────┘
+                                  │
+                         (If reconnected via merge)
+                                  │
+                                  ▼
+                         ┌──────────────────────┐
+                         │     Persistent       │
+                         │ (Connected again)    │
+                         └──────────────────────┘
+
+	  
+                           ┌────────────┐
+                           │  Transient │<--------------------new Object
+                           └────────────┘
+                                  │
+                         persist() │
+                                  ▼
+                           ┌────────────┐
+                           │ Persistent │
+                           └────────────┘
+                    ┌──────────┼───────────────┐
+                    │          │               │
+             remove()     detach()/clear()/   find() / getReference()
+           (Marked for       close()          (Load from DB, goes to persistent state directly)
+             deletion)          │               │
+                    ▼            ▼               │
+              ┌────────────┐ ┌────────────┐      │
+              │  Removed   │ │  Detached  │◄─────┘
+              └────────────┘ └────────────┘
+                                  │
+                               merge()
+                                  ▼
+                           ┌────────────┐
+                           │ Persistent │
+                           └────────────┘
+						   
+
+| **From → To**           | **Method / Action**              | **Result**                                       |
+| ----------------------- | -------------------------------- | ------------------------------------------------ |
+| Transient → Persistent  | `persist()`                      | Entity becomes managed.                          |
+| Persistent → Detached   | `detach()`, `clear()`, `close()` | Entity no longer tracked.                        |
+| Detached → Persistent   | `merge()`                        | Reattaches the entity (returns managed copy).    |
+| Persistent → Removed    | `remove()`                       | Entity marked for deletion.                      |
+| Removed → Deleted (DB)  | `commit()`                       | Entity physically deleted.                       |
+| Persistent → Persistent | `find()` / `getReference()`      | Retrieves or references existing managed entity. |
+
+
+| **State**      | **Meaning**                                                                                   |
+| -------------- | --------------------------------------------------------------------------------------------- |
+| **Transient**  | The object is new and **not managed** by the `EntityManager`. Not stored in the database.     |
+| **Persistent** | The object is **managed** by the `EntityManager`; changes are synchronized with the database. |
+| **Detached**   | The object was once persistent but is now **disconnected**. Changes won’t be saved.           |
+| **Removed**    | The object is **marked for deletion** and will be removed from the database after commit.     |
+
+
+	 

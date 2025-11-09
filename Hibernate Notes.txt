@@ -1351,5 +1351,47 @@ Composite primary key: (How to work when their is composite primary key)---->Com
 | **Detached**   | The object was once persistent but is now **disconnected**. Changes won’t be saved.           |
 | **Removed**    | The object is **marked for deletion** and will be removed from the database after commit.     |
 
+------------------------------
+public interface ProductDao {
+	ProductEntity saveProduct(ProductEntity product);
+	ProductEntity loadProductById(Integer productId);
+	ProductEntity updateProductById(Integer productId,Double new_unitPrice);
+	void deleteProductById(Integer productId);
+	public void closeFactory();
+	void testEntityStates();             //added method for understanding Entity States
+}
 
-	 
+
+
+	@Override
+	public void testEntityStates() {
+		EntityManager entityManager = factory.createEntityManager();
+		
+		ProductEntity pe = new ProductEntity();           //Transient State
+		pe.setProductId(123);
+		pe.setProductName("earbuds");
+		pe.setQuantity(3);
+		pe.setUnitPrice(2000.00);
+		/*
+		 * EntityTransaction tx = entityManager.getTransaction(); 
+		 * tx.begin();
+		 * entityManager.persist(pe); // persistence state 
+		 * tx.commit();
+		 * 
+		 * entityManager.detach(pe); //Removed from cache 
+		 * pe.setUnitPrice(3100.00);
+		 * //changes made to an entity in detached state does not affect in db
+		 * entityManager.close();
+		 */
+		
+		ProductEntity entity = entityManager.find(ProductEntity.class, 123);  //entity is in persistence state(as loading from db)
+		entityManager.detach(entity);                                         //detached state
+		entity.setUnitPrice(3000.00);
+		
+		EntityTransaction tx = entityManager.getTransaction();
+		tx.begin();
+		entityManager.merge(entity);                                          //Moved from detailed to persistence state
+		tx.commit();
+		entityManager.close();
+		
+	}

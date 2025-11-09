@@ -8,4 +8,5 @@ public interface ProductDao {
 	ProductEntity updateProductById(Integer productId,Double new_unitPrice);
 	void deleteProductById(Integer productId);
 	public void closeFactory();
+	void testEntityStates();             //added method for understanding Entity States
 }

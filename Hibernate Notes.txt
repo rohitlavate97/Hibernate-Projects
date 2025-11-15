@@ -1930,7 +1930,7 @@ List<EmployeeEntity> list = query.getResultList();
 | **Raw table operations**                            | No           | No     | ⭐ Best            |
 
 
---Stored Procedure--> @NamedStoredProcedureQury and @StoredProcedureParameter
+--Stored Procedure--> @NamedStoredProcedureQuery and @StoredProcedureParameter
 -------------------------------------------------------------------------------
 
 CREATE TABLE EMP (
@@ -1985,6 +1985,9 @@ END $$
 
 DELIMITER ;
 
+SHOW PROCEDURE STATUS WHERE Db = 'sbms';
+
+
 
 @Entity
 @Table(name = "emp")
@@ -2020,4 +2023,54 @@ public class EmployeeEntity {
     private Integer mgr;
 	
 	//getters and setters
+}
+
+
+public interface EmpDao {
+	public void callExperienceProcedure(int empNo);
+}
+
+
+
+public class EmpDaoImpl implements EmpDao{
+
+    private EntityManagerFactory factory =
+            Persistence.createEntityManagerFactory("emp_sp");
+    
+    @Override
+    public void callExperienceProcedure(int empNo) {
+
+        EntityManager em = factory.createEntityManager();
+
+        StoredProcedureQuery sp =
+                em.createNamedStoredProcedureQuery("emp_experience_proc");
+
+        sp.setParameter("ENO", empNo);
+        
+        EntityTransaction tx = em.getTransaction();   //optional-->Out parameter should be accessed with Transaction
+        tx.begin();
+        
+        sp.execute();
+        
+        String name = (String) sp.getOutputParameterValue("NAME");
+        Double exp = (Double) sp.getOutputParameterValue("EXPERIENCE");
+
+        System.out.println("Employee Name  : " + name);
+        System.out.println("Experience(years): " + exp);
+        
+        tx.commit();
+        em.close();
+        factory.close();
+    }
+
+}
+
+
+public class App {
+    public static void main(String[] args) {
+    	EmpDao dao = new EmpDaoImpl();
+
+        dao.callExperienceProcedure(7369);   // EMPNO you want
+
+    }
 }

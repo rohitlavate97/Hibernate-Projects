@@ -16,15 +16,19 @@ public class EmpDaoImpl implements EmpDao{
                 em.createNamedStoredProcedureQuery("emp_experience_proc");
 
         sp.setParameter("ENO", empNo);
-
+        
+        EntityTransaction tx = em.getTransaction();   //optional-->Out parameter should be accessed with Transaction
+        tx.begin();
+        
         sp.execute();
-
+        
         String name = (String) sp.getOutputParameterValue("NAME");
         Double exp = (Double) sp.getOutputParameterValue("EXPERIENCE");
 
         System.out.println("Employee Name  : " + name);
         System.out.println("Experience(years): " + exp);
-
+        
+        tx.commit();
         em.close();
         factory.close();
     }

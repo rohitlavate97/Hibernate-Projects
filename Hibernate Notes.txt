@@ -1814,6 +1814,20 @@ Criteria API → fully Java-based.
 
 Example: filter by name, department, salary only if provided.
 
+-CriteriaQuery Object--> Used in JPA to construct sql queries using Java methods
+                     --CriteriaQuery Object can be used for only select operations
+					 --CriteriaQuery object prepare tuned sql queries while executing, so the queries returns the data from Database fastly, so it improves the performance of an application
+					 --CriteriaBuilder is a helper class, to construct CriteriaQuery object and also helps to construct the conditions
+					 
+					 CriteriaBuilder cb = em.getCriteriaBuilder();
+					 //Selecting names and salaries of employees with CriteriaQuery
+                     CriteriaQuery<Object[]> q = cb.createQuery(Object[].class);        //Type of the result     
+					 //Root represents the entity used in select operation
+                     Root<EmployeeEntity> r = q.from(EmployeeEntity.class);   
+                     q.select(cb.array(r.get("empName"),r.get("empSal")));   
+                     //CriteriaQuery object is converted to query Object for execution  					 					 
+                     List<Object[]> lst = em.createQuery(q).getResultList();
+
 Example: 1) JPQL vs Criteria API
 JPQL-->
 TypedQuery<EmployeeEntity> q = em.createQuery("SELECT e FROM EmployeeEntity e WHERE e.salary > :sal", EmployeeEntity.class);
@@ -1914,3 +1928,96 @@ List<EmployeeEntity> list = query.getResultList();
 | **Complex SQL (joins, unions, analytic functions)** | Hard         | Hard   | ⭐ Best            |
 | **Mapping Entities**                                | Yes          | Yes    | Yes               |
 | **Raw table operations**                            | No           | No     | ⭐ Best            |
+
+
+--Stored Procedure--> @NamedStoredProcedureQury and @StoredProcedureParameter
+-------------------------------------------------------------------------------
+
+CREATE TABLE EMP (
+    EMPNO INT PRIMARY KEY,
+    ENAME VARCHAR(100) NOT NULL,
+    SAL DOUBLE NOT NULL,
+    DEPTNO INT NOT NULL,
+    DOJ DATE NOT NULL,
+    MGR INT NULL,
+    FOREIGN KEY (MGR) REFERENCES EMP(EMPNO)
+);
+
+
+INSERT INTO EMP VALUES
+(7839, 'KING', 60000, 10, '2015-06-01', NULL);
+
+INSERT INTO EMP VALUES
+(7566, 'JONES', 50000, 20, '2018-11-10', 7839),
+(7698, 'BLAKE', 48000, 30, '2017-05-03', 7839),
+(7782, 'CLARK', 42000, 10, '2016-12-01', 7839);
+
+INSERT INTO EMP VALUES
+(7369, 'SMITH', 30000, 10, '2020-01-15', 7566),
+(7499, 'ALLEN', 35000, 30, '2019-03-20', 7698),
+(7521, 'WARD', 28000, 30, '2021-06-01', 7698);
+
+
+select * from emp;
+
+
+
+DELIMITER $$
+
+CREATE PROCEDURE EMP_EXPERIENCE(
+    IN ENO INT,
+    OUT NAME VARCHAR(100),
+    OUT EXPERIENCE DOUBLE
+)
+BEGIN
+    DECLARE TEMP1 DATE;
+
+    SELECT ENAME INTO NAME
+    FROM EMP
+    WHERE EMPNO = ENO;
+
+    SELECT DOJ INTO TEMP1
+    FROM EMP
+    WHERE EMPNO = ENO;
+
+    SET EXPERIENCE = TIMESTAMPDIFF(YEAR, TEMP1, CURDATE());
+END $$
+
+DELIMITER ;
+
+
+@Entity
+@Table(name = "emp")
+@NamedStoredProcedureQuery(
+        name = "emp_experience_proc",
+        procedureName = "EMP_EXPERIENCE",
+
+        parameters = {
+                @StoredProcedureParameter(mode = ParameterMode.IN,  name = "ENO",        type = Integer.class),
+                @StoredProcedureParameter(mode = ParameterMode.OUT, name = "NAME",       type = String.class),
+                @StoredProcedureParameter(mode = ParameterMode.OUT, name = "EXPERIENCE", type = Double.class)
+        }
+)
+public class EmployeeEntity {
+
+    @Id
+    @Column(name = "EMPNO")
+    private int empNo;
+
+    @Column(name = "ENAME")
+    private String ename;
+
+    @Column(name = "SAL")
+    private double sal;
+
+    @Column(name = "DEPTNO")
+    private int deptNo;
+
+    @Column(name = "DOJ")
+    private java.sql.Date doj;
+
+    @Column(name = "MGR")
+    private Integer mgr;
+	
+	//getters and setters
+}

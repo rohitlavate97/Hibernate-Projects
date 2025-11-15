@@ -1616,3 +1616,120 @@ public class ClientApp {
     }
 }
 ----------------------------------------------------------
+-How to execute queries in JPA?
+-------------------------------
+For Select Query-->
+        String sqlString = "select * from emp where deptno=?";
+		Query q = entityManager.createNativeQuery(sqlString, EmployeeEntity.class);        //createNativeQuery is the overloaded method
+		//Every record converted to result class
+		q.setParameter(1,30);
+		List lst = q.getResultList();
+For Update Query-->
+        String sqlString = "Update emp set sal=? where deptno=?";
+		Query q = entityManager.createNativeQuery(sqlString);
+		EntityTransaction tx = entityManager.getTransaction();
+		tx.begin();
+		int x = q.executeUpdate();     //For Insert, Update, Delete-->Call this method
+		tx.commit();
+		
+Named Queries---> In Order to write Queries inside the Entity class(Reusablity)
+-------------
+Using Named Queries we can write our JPQL/SQL queries in entity class itself, so named queries will improve the readability of the queries
+Using named queries, you can define entity class and your query in a single file
+Example:
+         @Entity
+		 @Table(name="emp")
+		 @NamedQuery(name="query1", query="From EmployeeEntity e Where e.deptNumber=?1")      //Annotation provided to define sql queries at entity class, here we used JPQL query
+		 public class EmployeeEntity{
+		     @Id
+			 @Column(name = "empno")
+             private Integer empNumber;
+			 @Column(name = "ename")
+             private String empName;
+			 @Column(name = "sal")
+			 private Double salary;
+			 @Column(name = "deptno")
+             private Integer deptNumber;
+	}
+
+To execute named query
+          TypedQuery<EmployeeEntity> tq = entityManager.createNativeQuery("query1", EmployeeEntity.class);
+		  tq.setParameter(1,40);
+		  List<EmployeeEntity> lst = tq.getResultList();
+		  
+App
+---
+@Entity
+@Table(name = "EMPLOYEE_DTLS")
+@NamedQuery(name = "query1",query = "FROM EmployeeEntity e Where e.deptNumber=?")
+@NamedNativeQuery(name = "query2",query = "select * from EMPLOYEE_DTLS where sal>?",resultClass = EmployeeEntity.class)
+public class EmployeeEntity {
+	@Id
+	@Column(name = "empno")
+	private Integer empNumber;
+	@Column(name = "ename")
+	private String empName;
+	@Column(name = "sal")
+	private Double salary;
+	@Column(name = "deptno")
+	private Integer deptNumber;
+	//Getter setter
+}
+
+
+public interface EmpDao {
+	List<EmployeeEntity> executeNamedQuery(int deptNo);
+	List<EmployeeEntity> executeNamedQueryForSalary(int sal);
+}
+
+
+
+public class EmpDaoImpl implements EmpDao {
+	EntityManagerFactory factory = Persistence.createEntityManagerFactory("employee");
+
+	@Override
+	public List<EmployeeEntity> executeNamedQuery(int deptNo) {
+		EntityManager em = factory.createEntityManager();
+		TypedQuery<EmployeeEntity> q = em.createNamedQuery("query1", EmployeeEntity.class);
+		q.setParameter(1, deptNo);
+		List<EmployeeEntity> resultList = q.getResultList();
+		em.close();
+		return resultList;
+	}
+
+	@Override
+	public List<EmployeeEntity> executeNamedQueryForSalary(int sal) {
+	    EntityManager em = factory.createEntityManager();
+	    try {
+	        javax.persistence.Query q = em.createNamedQuery("query2");
+	        q.setParameter(1, sal);
+	        return q.getResultList();   // returns List<EmployeeEntity>
+	    } finally {
+	        em.close();
+	    }
+	}
+
+
+
+}
+
+
+
+public class AppClient {
+    public static void main(String[] args) {
+        EmpDao dao = new EmpDaoImpl();
+        
+        List<EmployeeEntity> executeNamedQuery = dao.executeNamedQuery(1);
+        executeNamedQuery.forEach(System.out::println);
+        
+        System.out.println("----------------------------------------");
+        
+        List<EmployeeEntity> executeNamedQueryForSalary = dao.executeNamedQueryForSalary(54000);
+        executeNamedQueryForSalary.forEach(System.out::println);
+        
+    }
+}
+
+
+--Criteria API
+--------------

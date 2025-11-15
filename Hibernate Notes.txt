@@ -1680,8 +1680,10 @@ public class EmployeeEntity {
 public interface EmpDao {
 	List<EmployeeEntity> executeNamedQuery(int deptNo);
 	List<EmployeeEntity> executeNamedQueryForSalary(int sal);
+	List<EmployeeEntity> executeCriteriaQuery();                            //from this methods added later
+	List<EmployeeEntity> executeCriteriaQueryForlessAndGreaterThan();
+	List<EmployeeEntity> executeCriteriaQueryForInBetweenSalary();
 }
-
 
 
 public class EmpDaoImpl implements EmpDao {
@@ -1699,20 +1701,58 @@ public class EmpDaoImpl implements EmpDao {
 
 	@Override
 	public List<EmployeeEntity> executeNamedQueryForSalary(int sal) {
-	    EntityManager em = factory.createEntityManager();
-	    try {
-	        javax.persistence.Query q = em.createNamedQuery("query2");
-	        q.setParameter(1, sal);
-	        return q.getResultList();   // returns List<EmployeeEntity>
-	    } finally {
-	        em.close();
-	    }
+		EntityManager em = factory.createEntityManager();
+		try {
+			Query q = em.createNamedQuery("query2");
+			q.setParameter(1, sal);
+			return q.getResultList(); // returns List<EmployeeEntity>
+		} finally {
+			em.close();
+		}
 	}
 
+	@Override
+	public List<EmployeeEntity> executeCriteriaQuery() {
+		EntityManager em = factory.createEntityManager();
+		CriteriaBuilder cb = em.getCriteriaBuilder();
+		CriteriaQuery<EmployeeEntity> q = cb.createQuery(EmployeeEntity.class);
+		Root<EmployeeEntity> r = q.from(EmployeeEntity.class);
+		q.select(r).where(cb.gt(r.get("salary"), 55000));
+		TypedQuery<EmployeeEntity> query = em.createQuery(q);
+		List<EmployeeEntity> resultList = query.getResultList();
+		em.close();
+		return resultList;
+	}
 
+	@Override
+	public List<EmployeeEntity> executeCriteriaQueryForlessAndGreaterThan() {
+		EntityManager em = factory.createEntityManager();
+		CriteriaBuilder cb = em.getCriteriaBuilder();
+		CriteriaQuery<EmployeeEntity> q = cb.createQuery(EmployeeEntity.class);
+		Root<EmployeeEntity> r = q.from(EmployeeEntity.class);
+		q.select(r).where(cb.and(cb.gt(r.get("salary"), 52000), cb.lt(r.get("salary"), 58000)));
+
+		List<EmployeeEntity> list = em.createQuery(q).getResultList();
+		em.close();
+		return list;
+	}
+
+	@Override
+	public List<EmployeeEntity> executeCriteriaQueryForInBetweenSalary() {
+		EntityManager em = factory.createEntityManager();
+
+		CriteriaBuilder cb = em.getCriteriaBuilder();
+		CriteriaQuery<EmployeeEntity> q = cb.createQuery(EmployeeEntity.class);
+		Root<EmployeeEntity> r = q.from(EmployeeEntity.class);
+
+		q.select(r).where(cb.between(r.get("salary"), 52000, 58000));
+
+		List<EmployeeEntity> list = em.createQuery(q).getResultList();
+		em.close();
+		return list;
+	}
 
 }
-
 
 
 public class AppClient {
@@ -1727,9 +1767,150 @@ public class AppClient {
         List<EmployeeEntity> executeNamedQueryForSalary = dao.executeNamedQueryForSalary(54000);
         executeNamedQueryForSalary.forEach(System.out::println);
         
+        System.out.println("----------------------------------------");
+        
+        List<EmployeeEntity> executeCriteriaQuery = dao.executeCriteriaQuery();
+        executeCriteriaQuery.forEach(System.out::println);
+        
+        System.out.println("----------------------------------------");
+        
+        List<EmployeeEntity> executeCriteriaQueryForlessAndGreaterThan = dao.executeCriteriaQueryForlessAndGreaterThan();
+        executeCriteriaQueryForlessAndGreaterThan.forEach(System.out::println);
+        
+        System.out.println("----------------------------------------");
+        
+        List<EmployeeEntity> executeCriteriaQueryForInBetweenSalary = dao.executeCriteriaQueryForInBetweenSalary();
+        executeCriteriaQueryForInBetweenSalary.forEach(System.out::println);
     }
 }
+--Tuned and Untuned Queries
+---------------------------
+untuned--> select * from emp
+tuned--> select empno,ename,sal,deptno from emp
 
+untuned-->select empno, ename, sal, deptno from emp where sal>=3000 and sal<=5000
+tuned-->select empno, ename, sal, deptno from emp where sal between 3000 and 5000;
 
---Criteria API
+--Criteria API--->code is present in above project
 --------------
+Criteria API allows you to build flexible, type-safe SQL-like queries using Java code instead of error-prone string queries.
+Criteria API is a programmatic, type-safe, object-oriented way to build dynamic queries in JPA/Hibernate.Instead of writing JPQL/HQL as strings, you construct queries using Java classes and methods.
+-Criteria API = Java way of building queries dynamically, using objects instead of strings
+-Why Criteria API is used?
+✔ 1. Dynamic Queries
+
+If query conditions change at runtime (e.g., adding WHERE clauses dynamically).
+
+✔ 2. Type Safe
+
+Compiler checks your query; avoids errors like typo in column names.
+
+✔ 3. No String-Based Query Errors
+
+JPQL/HQL is string-based → easily breaks.
+Criteria API → fully Java-based.
+
+✔ 4. Easy to combine multiple filters
+
+Example: filter by name, department, salary only if provided.
+
+Example: 1) JPQL vs Criteria API
+JPQL-->
+TypedQuery<EmployeeEntity> q = em.createQuery("SELECT e FROM EmployeeEntity e WHERE e.salary > :sal", EmployeeEntity.class);
+q.setParameter("sal", 50000);
+
+Same Query in Criteria API-->
+CriteriaBuilder cb = em.getCriteriaBuilder();
+CriteriaQuery<EmployeeEntity> cq = cb.createQuery(EmployeeEntity.class);         
+Root<EmployeeEntity> root = cq.from(EmployeeEntity.class);                      
+cq.select(root).where(cb.greaterThan(root.get("salary"), 50000));               
+TypedQuery<EmployeeEntity> query = em.createQuery(cq);
+List<EmployeeEntity> results = query.getResultList();
+
+Example: 2)
+CriteriaBuilder cb = em.getCriteriaBuilder();
+CriteriaQuery<Object[]> q = cb.createQuery(Object[].class);                      //Using CriteriaBuilder,create CriteriaQuery Object(CriteriaQuery constructs query based on Java methods i.e from(), select()) a proper tuned query,
+Root<EmployeeEntity> r = q.from(EmployeeEntity.class);                           //then Create Root Object-->Represents what Entity class we used in query
+q.select(cb.array(r.get("empName"),r.get("empSal")));                            //get the name and salary of EmployeeEntity i.e Root
+List<Object[]> lst = em.createQuery(q).getResultList();                          //taken Object[] as we are selecting partial entity(i.e only part of record)
+
+Example: 3)
+CriteriaBuilder cb = em.getCriteriaBuilder();
+CriteriaQuery<Person> q = cb.createQuery(Person.class);
+Root<Person> p = q.from(Person.class);
+q.select(p)
+ .where(cb.isMember("joe", p.get("nicknames")));
+List<Person> list = em.createQuery(q).getResultList();
+
+Example: 4) IN clause
+CriteriaBuilder cb = em.getCriteriaBuilder();
+CriteriaQuery<Person> q = cb.createQuery(Person.class);
+Root<Person> p = q.from(Person.class);
+Path<Set<String>> nicknames = p.get("nicknames");
+Predicate predicate = nicknames.in("joe", "sam", "mike");
+q.select(p).where(predicate);
+List<Person> result = em.createQuery(q).getResultList();
+
+Example: 5)
+CriteriaBuilder cb = em.getCriteriaBuilder();
+CriteriaQuery<EmployeeEntity> q = cb.createQuery(EmployeeEntity.class);
+Root<EmployeeEntity> r = q.from(EmployeeEntity.class);
+q.select(r)
+ .where(cb.greaterThan(r.get("salary"), 3000.0));
+List<EmployeeEntity> lst = em.createQuery(q).getResultList();
+
+
+| Class                | Purpose                                               |
+| -------------------- | ----------------------------------------------------- |
+| **CriteriaBuilder**  | Factory for creating predicates, expressions, queries |
+| **CriteriaQuery<T>** | Represents the full query                             |
+| **Root<T>**          | Represents the table/entity                           |
+| **Predicate**        | Conditions (WHERE clause)                             |
+| **TypedQuery**       | Executable JPA query                                  |
+
+
+🧠 When to Use Criteria API?
+
+Use when:
+
+✔ Query conditions are optional
+✔ You want to add filters dynamically
+✔ You want compile-time safety
+✔ You are building complex queries (joins, grouping, subqueries)
+
+🚀 Example: Dynamic Search with Multiple Optional Filters
+
+CriteriaBuilder cb = em.getCriteriaBuilder();
+CriteriaQuery<EmployeeEntity> cq = cb.createQuery(EmployeeEntity.class);
+Root<EmployeeEntity> root = cq.from(EmployeeEntity.class);
+
+List<Predicate> predicates = new ArrayList<>();
+
+if (name != null) {
+    predicates.add(cb.equal(root.get("empName"), name));
+}
+
+if (deptNo != null) {
+    predicates.add(cb.equal(root.get("deptNumber"), deptNo));
+}
+
+if (minSalary != null) {
+    predicates.add(cb.greaterThan(root.get("salary"), minSalary));
+}
+
+cq.where(predicates.toArray(new Predicate[0]));
+
+TypedQuery<EmployeeEntity> query = em.createQuery(cq);
+List<EmployeeEntity> list = query.getResultList();
+
+
+| Feature                                             | Criteria API | JPQL   | Native SQL        |
+| --------------------------------------------------- | ------------ | ------ | ----------------- |
+| **Type Safe**                                       | ✅ Yes        | ❌ No   | ❌ No              |
+| **Dynamic Queries**                                 | ⭐ Best       | ⚠ Hard | ⚠ Hard            |
+| **Performance**                                     | Same as JPQL | Good   | Fastest sometimes |
+| **Database Independent**                            | Fully        | Fully  | ❌ No              |
+| **Ease to Write**                                   | ❌ Complex    | ⭐ Easy | ⚠ Medium          |
+| **Complex SQL (joins, unions, analytic functions)** | Hard         | Hard   | ⭐ Best            |
+| **Mapping Entities**                                | Yes          | Yes    | Yes               |
+| **Raw table operations**                            | No           | No     | ⭐ Best            |

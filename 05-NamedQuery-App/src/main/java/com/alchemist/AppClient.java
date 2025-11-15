@@ -17,5 +17,19 @@ public class AppClient {
         List<EmployeeEntity> executeNamedQueryForSalary = dao.executeNamedQueryForSalary(54000);
         executeNamedQueryForSalary.forEach(System.out::println);
         
+        System.out.println("----------------------------------------");
+        
+        List<EmployeeEntity> executeCriteriaQuery = dao.executeCriteriaQuery();
+        executeCriteriaQuery.forEach(System.out::println);
+        
+        System.out.println("----------------------------------------");
+        
+        List<EmployeeEntity> executeCriteriaQueryForlessAndGreaterThan = dao.executeCriteriaQueryForlessAndGreaterThan();
+        executeCriteriaQueryForlessAndGreaterThan.forEach(System.out::println);
+        
+        System.out.println("----------------------------------------");
+        
+        List<EmployeeEntity> executeCriteriaQueryForInBetweenSalary = dao.executeCriteriaQueryForInBetweenSalary();
+        executeCriteriaQueryForInBetweenSalary.forEach(System.out::println);
     }
 }
